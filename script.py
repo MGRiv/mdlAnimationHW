@@ -54,6 +54,11 @@ from display import *
 from matrix import *
 from draw import *
 
+basename = ""
+frames = 0
+vary = []
+framearraydict = []
+
 
 """======== first_pass( commands, symbols ) ==========
 
@@ -73,7 +78,19 @@ from draw import *
   jdyrlandweaver
   ==================== """
 def first_pass( commands ):
-        
+    for command in commands:
+        if command[0] == "basename":
+            basename = command[1]
+        elif command[0] == "frames":
+            frames = command[1]
+        elif command[0] == "vary":
+            vary.append([command[1],command[2],command[3],command[4],command[5]])
+    if len(vary) > 0 and frames == 0:
+        quit()
+    if len(vary) > 0 and basename == "":
+        basename = "Default"
+        print "You didn't submit a basename. Basename has been set to 'Default'."
+    
 
 """======== second_pass( commands ) ==========
 
@@ -93,7 +110,18 @@ def first_pass( commands ):
   appropirate value. 
   ===================="""
 def second_pass( commands, num_frames ):
-
+    for x in range(num_frames):
+        framearraydict.append({})
+    for x in range(num_frames):
+        for q in commands:
+            if x >= q[1] and x <= q[2]:
+                framearraydict[x][q[0]] = (x - q[1]) * q[4] +  (q[2] - x) * q[3]
+            else:
+                if x < q[1]:
+                    framearraydict[x][q[0]] = q[3]
+                else:
+                    framearraydict[x][q[0]] = q[4]
+        
 
 def run(filename):
     """
@@ -113,65 +141,68 @@ def run(filename):
         
     stack = [ tmp ]
     screen = new_screen()    
-        
+
+    first_pass(commands)
+    second_pass(vary,frames)
+    
     for command in commands:
         if command[0] == "pop":
             stack.pop()
             if not stack:
                 stack = [ tmp ]
 
-        if command[0] == "push":
+        elif command[0] == "push":
             stack.append( stack[-1][:] )
 
-        if command[0] == "save":
+        elif command[0] == "save":
             save_extension(screen, command[1])
 
-        if command[0] == "display":
+        elif command[0] == "display":
             display(screen)
 
-        if command[0] == "sphere":
+        elif command[0] == "sphere":
             m = []
             add_sphere(m, command[1], command[2], command[3], command[4], 5)
             matrix_mult(stack[-1], m)
             draw_polygons( m, screen, color )
 
-        if command[0] == "torus":
+        elif command[0] == "torus":
             m = []
             add_torus(m, command[1], command[2], command[3], command[4], command[5], 5)
             matrix_mult(stack[-1], m)
             draw_polygons( m, screen, color )
 
-        if command[0] == "box":                
+        elif command[0] == "box":                
             m = []
             add_box(m, *command[1:])
             matrix_mult(stack[-1], m)
             draw_polygons( m, screen, color )
 
-        if command[0] == "line":
+        elif command[0] == "line":
             m = []
             add_edge(m, *command[1:])
             matrix_mult(stack[-1], m)
             draw_lines( m, screen, color )
 
-        if command[0] == "bezier":
+        elif command[0] == "bezier":
             m = []
             add_curve(m, command[1], command[2], command[3], command[4], command[5], command[6], command[7], command[8], .05, 'bezier')
             matrix_mult(stack[-1], m)
             draw_lines( m, screen, color )
 
-        if command[0] == "hermite":
+        elif command[0] == "hermite":
             m = []
             add_curve(m, command[1], command[2], command[3], command[4], command[5], command[6], command[7], command[8], .05, 'hermite')
             matrix_mult(stack[-1], m)
             draw_lines( m, screen, color )
 
-        if command[0] == "circle":
+        elif command[0] == "circle":
             m = []
             add_circle(m, command[1], command[2], command[3], command[4], .05)
             matrix_mult(stack[-1], m)
             draw_lines( m, screen, color )
 
-        if command[0] == "move":                
+        elif command[0] == "move":                
             xval = command[1]
             yval = command[2]
             zval = command[3]
@@ -180,7 +211,7 @@ def run(filename):
             matrix_mult( stack[-1], t )
             stack[-1] = t
 
-        if command[0] == "scale":
+        elif command[0] == "scale":
             xval = command[1]
             yval = command[2]
             zval = command[3]
@@ -189,7 +220,7 @@ def run(filename):
             matrix_mult( stack[-1], t )
             stack[-1] = t
             
-        if command[0] == "rotate":
+        elif command[0] == "rotate":
             angle = command[2] * (math.pi / 180)
 
             if command[1] == 'x':
