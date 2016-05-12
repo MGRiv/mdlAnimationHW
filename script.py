@@ -47,15 +47,13 @@
   jdyrlandweaver
   ========================="""
 
-
-
 import mdl
 from display import *
 from matrix import *
 from draw import *
 
 basename = ""
-frames = 0
+frames = 2
 vary = []
 framearraydict = []
 
@@ -78,18 +76,20 @@ framearraydict = []
   jdyrlandweaver
   ==================== """
 def first_pass( commands ):
+    b = ""
     for command in commands:
         if command[0] == "basename":
-            basename = command[1]
+            b = command[1]
         elif command[0] == "frames":
-            frames = command[1]
+            f = command[1]
         elif command[0] == "vary":
             vary.append([command[1],command[2],command[3],command[4],command[5]])
-    if len(vary) > 0 and frames == 0:
-        quit()
-    if len(vary) > 0 and basename == "":
-        basename = "Default"
+    if len(vary) > 0 and b == "":
+        b = "Default"
         print "You didn't submit a basename. Basename has been set to 'Default'."
+    if len(vary) > 0 and f == 1:
+        quit()
+    return [f,b]
     
 
 """======== second_pass( commands ) ==========
@@ -115,7 +115,7 @@ def second_pass( commands, num_frames ):
     for x in range(num_frames):
         for q in commands:
             if x >= q[1] and x <= q[2]:
-                framearraydict[x][q[0]] = (x - q[1]) * q[4] / (q[2] - q[1]) +  (q[2] - x) * q[3] / (q[2] - q[1])
+                framearraydict[x][q[0]] = (x - q[1]) * q[4] / float((q[2] - q[1])) +  (q[2] - x) * q[3] / float((q[2] - q[1]))
             else:
                 if x < q[1]:
                     framearraydict[x][q[0]] = q[3]
@@ -143,114 +143,133 @@ def run(filename):
         
     stack = [ tmp ]
     screen = new_screen()    
-
-    first_pass(commands)
+    
+    TEMP = first_pass(commands)
+    basename = TEMP[1]
+    frames = TEMP[0]
     second_pass(vary,frames)
     cframe = 0
-
     while cframe < frames:
-        
+        #print frames
         for command in commands:
             if command[0] == "pop":
                 stack.pop()
                 if not stack:
                     stack = [ tmp ]
-                elif command[0] == "push":
-                    stack.append( stack[-1][:] )
-                    
-                elif command[0] == "display":
-                    display(screen)
-                    
-                elif command[0] == "sphere":
-                    m = []
-                    add_sphere(m, command[1], command[2], command[3], command[4], 5)
-                    matrix_mult(stack[-1], m)
-                    draw_polygons( m, screen, color )
-                    
-                elif command[0] == "torus":
-                    m = []
-                    add_torus(m, command[1], command[2], command[3], command[4], command[5], 5)
-                    matrix_mult(stack[-1], m)
-                    draw_polygons( m, screen, color )
-                    
-                elif command[0] == "box":                
-                    m = []
-                    add_box(m, *command[1:])
-                    matrix_mult(stack[-1], m)
-                    draw_polygons( m, screen, color )
-                    
-                elif command[0] == "line":
-                    m = []
-                    add_edge(m, *command[1:])
-                    matrix_mult(stack[-1], m)
-                    draw_lines( m, screen, color )
-                    
-                elif command[0] == "bezier":
-                    m = []
-                    add_curve(m, command[1], command[2], command[3], command[4], command[5], command[6], command[7], command[8], .05, 'bezier')
-                    matrix_mult(stack[-1], m)
-                    draw_lines( m, screen, color )
-                    
-                elif command[0] == "hermite":
-                    m = []
-                    add_curve(m, command[1], command[2], command[3], command[4], command[5], command[6], command[7], command[8], .05, 'hermite')
-                    matrix_mult(stack[-1], m)
-                    draw_lines( m, screen, color )
-                    
-                elif command[0] == "circle":
-                    m = []
-                    add_circle(m, command[1], command[2], command[3], command[4], .05)
-                    matrix_mult(stack[-1], m)
-                    draw_lines( m, screen, color )
-                    
-                elif command[0] == "move":                
-                    if len(command) < 5:
-                        xval = command[1]
-                        yval = command[2]
-                        zval = command[3]
-                        
-                        t = make_translate(xval, yval, zval)
-                        matrix_mult( stack[-1], t )
-                        stack[-1] = t
-                    else:
-                        xval = command[1]
-                        yval = command[2]
-                        zval = command[3]
-                        
-                        t = make_translate(xval * framearraydict[cframe][command[4]], yval * framearraydict[cframe][command[4]], zval * framearraydict[cframe][command[4]])
-                    matrix_mult( stack[-1], t )
-                    stack[-1] = t
-                elif command[0] == "scale":
-                    if len(command) < 5:
-                        xval = command[1]
-                        yval = command[2]
-                        zval = command[3]
-                        
-                        t = make_scale(xval, yval, zval)
-                        matrix_mult( stack[-1], t )
-                        stack[-1] = t
-                    else:
-                        xval = command[1]
-                        yval = command[2]
-                        zval = command[3]
-                        
-                        t = make_scale(xval * framearraydict[cframe][command[4]], yval * framearraydict[cframe][command[4]], zval * framearraydict[cframe][command[4]])
-                    matrix_mult( stack[-1], t )
-                    stack[-1] = t
-                elif command[0] == "rotate":
-                    angle = command[2] * (math.pi / 180)
-                    
-                    if command[1] == 'x':
-                        t = make_rotX( angle * framearraydict[cframe][command[4]])
-                    elif command[1] == 'y':
-                        t = make_rotY( angle * framearraydict[cframe][command[4]])
-                    elif command[1] == 'z':
-                        t = make_rotZ( angle * framearraydict[cframe][command[4]])            
-                    matrix_mult( stack[-1], t )
-                    stack[-1] = t
+            elif command[0] == "push":
+                stack.append( stack[-1][:] )
 
+            elif command[0] == "save":
+                save_extension(screen, command[1])
+                
+            elif command[0] == "display":
+                display(screen)
+                
+            elif command[0] == "sphere":
+                m = []
+                add_sphere(m, command[1], command[2], command[3], command[4], 5)
+                matrix_mult(stack[-1], m)
+                draw_polygons( m, screen, color )
+                
+            elif command[0] == "torus":
+                m = []
+                add_torus(m, command[1], command[2], command[3], command[4], command[5], 5)
+                matrix_mult(stack[-1], m)
+                draw_polygons( m, screen, color )
+                
+            elif command[0] == "box":                
+                m = []
+                add_box(m, *command[1:])
+                matrix_mult(stack[-1], m)
+                draw_polygons( m, screen, color )
+                
+            elif command[0] == "line":
+                m = []
+                add_edge(m, *command[1:])
+                matrix_mult(stack[-1], m)
+                draw_lines( m, screen, color )
+                
+            elif command[0] == "bezier":
+                m = []
+                add_curve(m, command[1], command[2], command[3], command[4], command[5], command[6], command[7], command[8], .05, 'bezier')
+                matrix_mult(stack[-1], m)
+                draw_lines( m, screen, color )
+                
+            elif command[0] == "hermite":
+                m = []
+                add_curve(m, command[1], command[2], command[3], command[4], command[5], command[6], command[7], command[8], .05, 'hermite')
+                matrix_mult(stack[-1], m)
+                draw_lines( m, screen, color )
+                
+            elif command[0] == "circle":
+                m = []
+                add_circle(m, command[1], command[2], command[3], command[4], .05)
+                matrix_mult(stack[-1], m)
+                draw_lines( m, screen, color )
+                
+            elif command[0] == "move":                
+                if command[4] == None:
+                    xval = command[1]
+                    yval = command[2]
+                    zval = command[3]
+                    
+                    t = make_translate(xval, yval, zval)
+                    matrix_mult( stack[-1], t )
+                    stack[-1] = t
+                else:
+                    xval = command[1] * framearraydict[cframe][command[4]]
+                    yval = command[2] * framearraydict[cframe][command[4]]
+                    zval = command[3] * framearraydict[cframe][command[4]]
+                    
+                    t = make_translate(xval, yval, zval)
+                    matrix_mult( stack[-1], t )
+                    stack[-1] = t
+            elif command[0] == "scale":
+                if command[4] == None:
+                    xval = command[1]
+                    yval = command[2]
+                    zval = command[3]
+                    
+                    t = make_scale(xval, yval, zval)
+                    matrix_mult( stack[-1], t )
+                    stack[-1] = t
+                else:
+                    xval = command[1] * framearraydict[cframe][command[4]]
+                    yval = command[2] * framearraydict[cframe][command[4]]
+                    zval = command[3] * framearraydict[cframe][command[4]]
+                    
+                    t = make_scale(xval, yval, zval)
+                    matrix_mult( stack[-1], t )
+                    stack[-1] = t
+            elif command[0] == "rotate":
+                angle = command[2] * (math.pi / 180)
+                
+                if command[3] == None:
+                    if command[1] == 'x':
+                        t = make_rotX( angle )
+                    elif command[1] == 'y':
+                        t = make_rotY( angle )
+                    elif command[1] == 'z':
+                        t = make_rotZ( angle )            
+                    
+                    matrix_mult( stack[-1], t )
+                    stack[-1] = t
+                else:
+                    if command[1] == 'x':
+                        t = make_rotX( angle * framearraydict[cframe][command[3]])
+                    elif command[1] == 'y':
+                        t = make_rotY( angle * framearraydict[cframe][command[3]])
+                    elif command[1] == 'z':
+                        t = make_rotZ( angle * framearraydict[cframe][command[3]])            
+                    matrix_mult( stack[-1], t )
+                    stack[-1] = t
+                    
         if cframe > 9:
-            save_extension(screen, basename + "0" + str(cframe))
+            save_extension(screen, "images/" + basename + "0" + str(cframe))
         else:
-            save_extension(screen, basename + "00" + str(cframe))
+            save_extension(screen, "images/" + basename + "00" + str(cframe))
+        tmp = new_matrix()
+        ident( tmp )
+        stack = [ tmp ]
+        screen = new_screen()
         cframe += 1
